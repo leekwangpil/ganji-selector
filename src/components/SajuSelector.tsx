@@ -133,7 +133,7 @@ export function SajuSelector({ onAnalysisComplete }: SajuSelectorProps) {
       if (matchedGanji) {
         const now = new Date().getFullYear();
         const [term1, term2] = getSeasonalTermsByGanji(matchedGanji, now);
-        seasonalLine = `현재 당신의 60년 기준 운명 절기는 ${term1} 또는 ${term2}입니다.`;
+        seasonalLine = `${now}년의 당신의 60년 기준 운명 절기는 ${term1} 또는 ${term2}입니다.`;
       }
 
       // result에서 "입니다." 앞에 "년" 추가
