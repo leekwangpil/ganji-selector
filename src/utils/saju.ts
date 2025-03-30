@@ -4,8 +4,19 @@ const eumgan = ['을', '정', '기', '신', '계'];
 const yangji = ['자', '인', '진', '오', '신', '술'];
 const eumji = ['축', '묘', '사', '미', '유', '해'];
 
-const full_gan = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계'];
-const full_ji = [
+export const full_gan = [
+  '갑',
+  '을',
+  '병',
+  '정',
+  '무',
+  '기',
+  '경',
+  '신',
+  '임',
+  '계',
+] as const;
+export const full_ji = [
   '자',
   '축',
   '인',
@@ -18,7 +29,83 @@ const full_ji = [
   '유',
   '술',
   '해',
+] as const;
+
+export type Gan = (typeof full_gan)[number];
+export type Ji = (typeof full_ji)[number];
+
+// 24절기 목록
+const seasonalTerms = [
+  '입춘',
+  '우수',
+  '경칩',
+  '춘분',
+  '청명',
+  '곡우',
+  '입하',
+  '소만',
+  '망종',
+  '하지',
+  '소서',
+  '대서',
+  '입추',
+  '처서',
+  '백로',
+  '추분',
+  '한로',
+  '상강',
+  '입동',
+  '소설',
+  '대설',
+  '동지',
+  '소한',
+  '대한',
 ];
+
+// 연도에서 60갑자 계산
+export function getGanjiFromYear(year: number): string {
+  const baseYear = 1984; // 기준: 갑자년
+  const offset = (year - baseYear + 60) % 60;
+  return full_gan[offset % 10] + full_ji[offset % 12];
+}
+
+// 60갑자에서 해당하는 연도들 찾기
+export function getYearsFromGanji(
+  ganji: string,
+  start = 1900,
+  end = 2099
+): number[] {
+  const years: number[] = [];
+  for (let year = start; year <= end; year++) {
+    if (getGanjiFromYear(year) === ganji) {
+      years.push(year);
+    }
+  }
+  return years;
+}
+
+// 60갑자 기준으로 현재 절기 계산
+export function getSeasonalTermsByGanji(
+  baseGanji: string,
+  currentYear: number
+): [string, string] {
+  const baseYears = getYearsFromGanji(baseGanji, 1900, 2099);
+  if (baseYears.length === 0) {
+    throw new Error('입력된 60갑자가 유효하지 않습니다.');
+  }
+
+  const baseYear = baseYears[baseYears.length - 1]; // 가장 가까운 기준연도
+  const elapsedFromIpchun = currentYear - baseYear;
+  const elapsedFromIpchu = currentYear - (baseYear + 30);
+
+  const index1 = Math.floor((((elapsedFromIpchun % 60) + 60) % 60) / 2.5);
+  const index2 = Math.floor((((elapsedFromIpchu % 60) + 60) % 60) / 2.5);
+
+  const term1 = seasonalTerms[index1 % 24];
+  const term2 = seasonalTerms[index2 % 24];
+
+  return [term1, term2];
+}
 
 export function analyzeSaju(
   year: string,
@@ -31,9 +118,9 @@ export function analyzeSaju(
       throw new Error('올바른 연도, 월, 일을 입력하세요.');
     }
 
-    const year_gan = year[0];
-    const month_ji = month[1];
-    const day_gan = day[0];
+    const year_gan = year[0] as Gan;
+    const month_ji = month[1] as Ji;
+    const day_gan = day[0] as Gan;
 
     if (
       !full_gan.includes(year_gan) ||
