@@ -67,7 +67,10 @@ export function analyzeSaju(
     }
 
     return `당신의 입춘 또는 입추는 ${result}입니다.`;
-  } catch (e: any) {
-    return `입력 오류: ${e.message}`;
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      return `입력 오류: ${e.message}`;
+    }
+    return '알 수 없는 오류가 발생했습니다.';
   }
 }
