@@ -33,7 +33,7 @@ export function SajuSelector({ onAnalysisComplete }: SajuSelectorProps) {
       <div className="space-y-4">
         <div>
           <p className="text-sm font-medium mb-1">천간</p>
-          <div className="grid grid-cols-10 gap-2">
+          <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
             {['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계'].map(
               (gan) => (
                 <button
@@ -58,7 +58,7 @@ export function SajuSelector({ onAnalysisComplete }: SajuSelectorProps) {
         </div>
         <div>
           <p className="text-sm font-medium mb-1">지지</p>
-          <div className="grid grid-cols-12 gap-2">
+          <div className="grid grid-cols-6 gap-2 sm:grid-cols-12">
             {[
               '자',
               '축',

@@ -1,12 +1,14 @@
 {
   "name": "ganji-selector",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.cjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.2",
@@ -15,11 +17,13 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.485.0",
-    "next": "15.2.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "next": "15.5.25",
+    "react": "19.0.8",
+    "react-dom": "19.0.8",
     "tailwind-merge": "^3.0.2",
-    "tw-animate-css": "^1.2.5"
+    "tw-animate-css": "^1.2.5",
+    "lunar-javascript": "1.7.7",
+    "korean-lunar-calendar": "0.4.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -28,8 +32,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.2.4",
+    "eslint-config-next": "15.5.25",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "jsdom": "26.1.0",
+    "tsx": "^4.20.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }

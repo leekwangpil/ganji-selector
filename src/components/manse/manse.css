@@ -1,0 +1,134 @@
+#manse-calculator {
+  --manse-page: light-dark(#f4f7f5, #151c19);
+  --manse-surface: light-dark(#ffffff, #1c2621);
+  --manse-ink: light-dark(#202b25, #edf3ee);
+  --manse-muted: light-dark(#526159, #bccabf);
+  --manse-line: light-dark(#d9e4dc, #3c4b41);
+  --manse-soft: light-dark(#eff5f1, #26362c);
+  --manse-green: light-dark(#267348, #a7dcb7);
+  --manse-button: light-dark(#287649, #addab8);
+  --manse-button-ink: light-dark(#ffffff, #173821);
+  --manse-error: light-dark(#a22e29, #ffb4a9);
+  --manse-alert: light-dark(#775214, #eed19c);
+  --manse-alert-bg: light-dark(#fff8e9, #342e21);
+  color-scheme: light dark;
+  color: var(--manse-ink);
+  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  font-weight: 400;
+}
+#manse-calculator * { box-sizing: border-box; }
+#manse-calculator [hidden] { display: none !important; }
+#manse-calculator .manse-app { background: var(--manse-page); border: 1px solid var(--manse-line); border-radius: 18px; overflow: hidden; }
+#manse-calculator .manse-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 16px 22px; background: var(--manse-surface); border-bottom: 1px solid var(--manse-line); }
+#manse-calculator .manse-brand { display: inline-flex; align-items: center; gap: 9px; font-weight: 500; }
+#manse-calculator .manse-mark { width: 12px; height: 12px; background: var(--manse-green); border-radius: 50% 50% 50% 0; }
+#manse-calculator .manse-muted { color: var(--manse-muted); }
+#manse-calculator .manse-content { padding: 22px; }
+#manse-calculator h1, #manse-calculator h2, #manse-calculator h3 { margin: 0; color: var(--manse-ink); font-weight: 500; }
+#manse-calculator p { margin: 7px 0 0; }
+#manse-calculator .manse-heading { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+#manse-calculator .manse-tag { border-radius: 30px; background: var(--manse-soft); color: var(--manse-green); padding: 5px 10px; }
+#manse-calculator .manse-panel { min-width: 0; padding: 20px; background: var(--manse-surface); border: 1px solid var(--manse-line); border-radius: 12px; }
+#manse-calculator .manse-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
+#manse-calculator .manse-field { display: grid; gap: 6px; min-width: 0; }
+#manse-calculator .manse-name { margin-bottom: 18px; }
+#manse-calculator fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+#manse-calculator legend { padding: 0; margin-bottom: 9px; font-weight: 500; }
+#manse-calculator label { color: var(--manse-ink); }
+#manse-calculator input[type="text"], #manse-calculator select {
+  min-width: 0; width: 100%; min-height: 44px; padding: 9px 10px; font: inherit;
+  color: var(--manse-ink); border: 1px solid var(--manse-line); border-radius: 8px; background: var(--manse-surface);
+}
+#manse-calculator input::placeholder { color: var(--manse-muted); }
+#manse-calculator input[aria-invalid="true"], #manse-calculator select[aria-invalid="true"] { border-color: var(--manse-error); }
+#manse-calculator input:disabled { background: var(--manse-soft); color: var(--manse-muted); }
+#manse-calculator .manse-date { display: grid; grid-template-columns: minmax(0,1.4fr) repeat(2,minmax(0,1fr)); gap: 7px; }
+#manse-calculator datalist { display: none; }
+#manse-calculator .manse-time { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#manse-calculator .manse-date label > span, #manse-calculator .manse-date .manse-field > label, #manse-calculator .manse-time label > span { color: var(--manse-muted); }
+#manse-calculator .manse-check { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+#manse-calculator input[type="checkbox"], #manse-calculator input[type="radio"] { accent-color: var(--manse-green); width: 17px; height: 17px; flex-shrink: 0; margin: 0; }
+#manse-calculator .manse-genders { display: flex; gap: 12px; flex-wrap: wrap; }
+#manse-calculator .manse-calendars { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 17px; }
+#manse-calculator .manse-calendar { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 92px; min-height: 44px; padding: 8px 16px; border: 1px solid var(--manse-line); border-radius: 8px; cursor: pointer; }
+#manse-calculator .manse-calendar:has(input:checked) { background: var(--manse-soft); border-color: var(--manse-green); color: var(--manse-green); }
+#manse-calculator .manse-calendar:has(input:focus-visible) { outline: auto; }
+#manse-calculator select:disabled { background: var(--manse-soft); color: var(--manse-muted); }
+#manse-calculator .manse-converted { margin: -8px 0 16px; color: var(--manse-green); overflow-wrap: anywhere; }
+#manse-calculator .manse-settings { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--manse-line); }
+#manse-calculator .manse-settings legend { margin-bottom: 14px; }
+#manse-calculator .manse-setting-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin-top: 14px; }
+#manse-calculator .manse-help { color: var(--manse-muted); }
+#manse-calculator .manse-actions { margin-top: 18px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+#manse-calculator .manse-submit { min-height: 46px; min-width: 180px; padding: 11px 20px; border: 0; border-radius: 9px; font: inherit; font-weight: 500; color: var(--manse-button-ink); background: var(--manse-button); cursor: pointer; }
+#manse-calculator .manse-error { color: var(--manse-error); margin-top: 14px; }
+#manse-calculator .manse-result { margin-top: 16px; }
+#manse-calculator .manse-result-header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+#manse-calculator .manse-result-header h3 { min-width: 0; overflow-wrap: anywhere; }
+#manse-calculator .manse-summary { color: var(--manse-muted); margin-bottom: 16px; overflow-wrap: anywhere; }
+#manse-calculator .manse-empty { margin-top: 18px; padding: 22px 12px; text-align: center; background: var(--manse-soft); border-radius: 8px; color: var(--manse-muted); }
+#manse-calculator .manse-variant + .manse-variant { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--manse-line); }
+#manse-calculator .manse-variant-title { margin-bottom: 9px; font-weight: 500; }
+#manse-calculator .manse-pillars { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
+#manse-calculator .manse-pillar { min-width: 0; text-align: center; border: 1px solid var(--manse-line); border-radius: 9px; overflow: hidden; }
+#manse-calculator .manse-pillar-title { background: var(--manse-soft); padding: 8px 2px; font-weight: 500; }
+#manse-calculator .manse-half { padding: 12px 2px; display: grid; gap: 3px; }
+#manse-calculator .manse-half + .manse-half { border-top: 1px solid var(--manse-line); }
+#manse-calculator .manse-half span { color: var(--manse-muted); }
+#manse-calculator .manse-natural { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 14px; }
+#manse-calculator .manse-natural strong { font-weight: 500; color: var(--manse-green); }
+#manse-calculator .manse-cycle-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 20px; }
+#manse-calculator .manse-cycle-table caption { text-align: left; padding-bottom: 12px; }
+#manse-calculator .manse-cycle-title { display: block; font-weight: 500; }
+#manse-calculator .manse-cycle-scale { display: block; margin-top: 4px; color: var(--manse-muted); }
+#manse-calculator .manse-cycle-table col.manse-cycle-term-column { width: 17%; }
+#manse-calculator .manse-cycle-table col.manse-cycle-years-column { width: 19%; }
+#manse-calculator .manse-cycle-table col.manse-cycle-case-column { width: 32%; }
+#manse-calculator .manse-cycle-table th, #manse-calculator .manse-cycle-table td { padding: 10px 6px; border-bottom: 1px solid var(--manse-line); vertical-align: middle; text-align: center; overflow-wrap: anywhere; }
+#manse-calculator .manse-cycle-table th { font-weight: 500; }
+#manse-calculator .manse-cycle-table thead th { background: var(--manse-soft); }
+#manse-calculator .manse-cycle-table thead th span { display: block; }
+#manse-calculator .manse-cycle-table tbody th { text-align: left; }
+#manse-calculator .manse-cycle-case-label { margin-top: 3px; color: var(--manse-muted); font-weight: 400; word-break: keep-all; }
+#manse-calculator .manse-cycle-key { background: var(--manse-soft); }
+#manse-calculator .manse-cycle-calendar-years { display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 3px 10px; margin-bottom: 5px; color: var(--manse-green); font-weight: 500; font-variant-numeric: tabular-nums; }
+#manse-calculator .manse-cycle-calendar-year { white-space: nowrap; }
+#manse-calculator .manse-cycle-value { display: inline-flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 3px 6px; }
+#manse-calculator .manse-cycle-ganji { white-space: nowrap; }
+#manse-calculator .manse-cycle-half { color: var(--manse-muted); white-space: nowrap; }
+#manse-calculator .manse-cycle-years { color: var(--manse-muted); font-variant-numeric: tabular-nums; }
+#manse-calculator .manse-cycle-note { color: var(--manse-muted); }
+#manse-calculator .manse-cycle-choice { margin-top: 24px; }
+#manse-calculator .manse-cycle-choice-options { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+#manse-calculator .manse-cycle-choice-option { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 48px; padding: 10px; border: 1px solid var(--manse-line); border-radius: 8px; cursor: pointer; }
+#manse-calculator .manse-cycle-choice-option span { min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
+#manse-calculator .manse-cycle-choice-option:has(input:checked) { background: var(--manse-soft); border-color: var(--manse-green); color: var(--manse-green); }
+#manse-calculator .manse-notices { margin-top: 15px; padding: 12px; color: var(--manse-alert); background: var(--manse-alert-bg); border-radius: 8px; }
+#manse-calculator .manse-notices p { margin: 0; }
+#manse-calculator .manse-notices p + p { margin-top: 7px; }
+#manse-calculator details { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--manse-line); }
+#manse-calculator summary { min-height: 36px; cursor: pointer; color: var(--manse-muted); }
+#manse-calculator .manse-facts { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 9px 15px; margin: 10px 0 0; }
+#manse-calculator .manse-facts dt { color: var(--manse-muted); }
+#manse-calculator .manse-facts dd { margin: 0; overflow-wrap: anywhere; }
+#manse-calculator .manse-footer { color: var(--manse-muted); text-align: center; margin-top: 16px; }
+@media (max-width: 660px) {
+  #manse-calculator .manse-content { padding: 18px 12px; }
+  #manse-calculator .manse-panel { padding: 16px; }
+  #manse-calculator .manse-fields, #manse-calculator .manse-setting-row { grid-template-columns: minmax(0,1fr); }
+  #manse-calculator .manse-cycle-choice-options { grid-template-columns: minmax(0,1fr); }
+  #manse-calculator .manse-facts { grid-template-columns: minmax(0,1fr); gap: 4px; }
+  #manse-calculator .manse-facts dd { margin-bottom: 6px; }
+}
+@media (max-width: 380px) {
+  #manse-calculator .manse-date { gap: 5px; }
+  #manse-calculator input[type="text"], #manse-calculator select { padding-left: 6px; padding-right: 3px; }
+  #manse-calculator .manse-pillars { gap: 5px; }
+}
+@media (pointer: coarse) {
+  #manse-calculator input[type="text"], #manse-calculator select { font-size: 16px; }
+}
+#manse-calculator { font-size: 1rem; line-height: 1.6; }
+#manse-calculator h1, #manse-calculator h2 { font-size: 1.5rem; }
+#manse-calculator h3 { font-size: 1.125rem; }
+#manse-calculator button:disabled { opacity: .6; cursor: wait; }
