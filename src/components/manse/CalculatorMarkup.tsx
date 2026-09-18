@@ -81,7 +81,23 @@ export function CalculatorMarkup() {
         <div className="manse-result-header"><h3 id="wm-result-title">사주 결과</h3><span id="wm-status" className="manse-muted">입력 대기</span></div>
         <p id="wm-summary" className="manse-summary" hidden></p>
         <p id="wm-converted" className="manse-converted" hidden></p>
-        <div id="wm-empty" className="manse-empty">계산하면 사주팔자와 입춘·입추 두 경우의 사이클, 절기별 연도 두 개를 확인할 수 있습니다.</div>
+        <div id="wm-empty" className="manse-empty">계산하면 사주팔자와 입춘·입추 두 경우의 60년·60개월·60일 사이클을 확인할 수 있습니다.</div>
+        <fieldset id="wm-cycle-controls" className="manse-cycle-controls" hidden>
+          <legend>자연순환 주기</legend>
+          <div className="manse-cycle-tabs">
+            <label className="manse-calendar"><input id="wm-cycle-year" type="radio" name="cycle-unit" value="year" defaultChecked />60년</label>
+            <label className="manse-calendar"><input id="wm-cycle-month" type="radio" name="cycle-unit" value="month" />60개월</label>
+            <label className="manse-calendar"><input id="wm-cycle-day" type="radio" name="cycle-unit" value="day" />60일</label>
+          </div>
+          <p className="manse-help">연·월·일 모두 같은 간지를 입춘 또는 입추의 기준으로 적용합니다.</p>
+          <div id="wm-cycle-period-fields" className="manse-cycle-period-fields" hidden>
+            <label id="wm-cycle-month-field" className="manse-field" htmlFor="wm-cycle-start-month" hidden><span>표시 시작 월 · 양력</span><input id="wm-cycle-start-month" type="month" min="1900-01" max="2100-12" aria-describedby="wm-cycle-period-help wm-cycle-error" /></label>
+            <label id="wm-cycle-day-field" className="manse-field" htmlFor="wm-cycle-start-day" hidden><span>표시 시작 날짜 · 양력</span><input id="wm-cycle-start-day" type="date" min="1900-01-01" max="2100-12-31" aria-describedby="wm-cycle-period-help wm-cycle-error" /></label>
+            <button id="wm-cycle-today" className="manse-cycle-today" type="button">오늘 기준</button>
+          </div>
+          <p id="wm-cycle-period-help" className="manse-help" hidden>표시할 기간만 바꿉니다. 생년월일과 기준 간지는 그대로 유지됩니다.</p>
+          <p id="wm-cycle-error" className="manse-error" role="alert" hidden></p>
+        </fieldset>
         <div id="wm-variants"></div>
         <div id="wm-notices" className="manse-notices" hidden></div>
         <details id="wm-calculation-details" hidden><summary>적용 시간·절입 시각 확인</summary><dl id="wm-facts" className="manse-facts"></dl></details>
