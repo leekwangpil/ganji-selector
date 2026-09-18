@@ -35,7 +35,7 @@
 #manse-calculator fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 #manse-calculator legend { padding: 0; margin-bottom: 9px; font-weight: 500; }
 #manse-calculator label { color: var(--manse-ink); }
-#manse-calculator input[type="text"], #manse-calculator select {
+#manse-calculator input[type="text"], #manse-calculator input[type="search"], #manse-calculator select {
   min-width: 0; width: 100%; min-height: 44px; padding: 9px 10px; font: inherit;
   color: var(--manse-ink); border: 1px solid var(--manse-line); border-radius: 8px; background: var(--manse-surface);
 }
@@ -125,6 +125,18 @@
 #manse-calculator .manse-facts dt { color: var(--manse-muted); }
 #manse-calculator .manse-facts dd { margin: 0; overflow-wrap: anywhere; }
 #manse-calculator .manse-footer { color: var(--manse-muted); text-align: center; margin-top: 16px; }
+#manse-calculator .manse-profiles { margin: 0 0 16px; padding: 16px; }
+#manse-calculator .manse-profiles summary { font-weight: 500; }
+#manse-calculator .manse-profile-search { margin-top: 14px; }
+#manse-calculator .manse-profile-list { list-style: none; margin: 12px 0 0; padding: 0; }
+#manse-calculator .manse-profile-item { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 0; border-top: 1px solid var(--manse-line); }
+#manse-calculator .manse-profile-info { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+#manse-calculator .manse-profile-info strong { font-weight: 500; }
+#manse-calculator .manse-profile-item-actions, #manse-calculator .manse-profile-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+#manse-calculator .manse-profile-toolbar { justify-content: space-between; margin-bottom: 14px; }
+#manse-calculator .manse-profile-toolbar p { min-width: 0; overflow-wrap: anywhere; flex: 1 1 180px; }
+#manse-calculator .manse-secondary { min-height: 44px; padding: 9px 14px; border: 1px solid var(--manse-line); border-radius: 8px; font: inherit; color: var(--manse-green); background: var(--manse-soft); cursor: pointer; }
+#manse-calculator .manse-secondary:disabled { cursor: default; }
 @media (max-width: 660px) {
   #manse-calculator .manse-content { padding: 18px 12px; }
   #manse-calculator .manse-panel { padding: 16px; }
