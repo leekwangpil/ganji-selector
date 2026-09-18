@@ -3,6 +3,7 @@ import KoreanCalendarClass from "korean-lunar-calendar";
 import { createCalendarAdapter } from "../../lib/manse/calendar-adapter.js";
 import { createManseEngine } from "../../lib/manse/engine.js";
 import { buildNaturalCycleCases } from "../../lib/manse/natural-cycles.js";
+import { buildCurrentCycles, CURRENT_CYCLE_RULE } from "../../lib/manse/current-cycles.js";
 import timezoneData from "../../lib/manse/timezone.json";
 
 // Keep the approved native-input behavior independent of React re-renders.
@@ -31,6 +32,9 @@ export function mountManseCalculator(root) {
   const error=q('error'), status=q('status'), summary=q('summary'), variants=q('variants');
   let rememberedTime={hour:'',minute:''};
   let resultShown=false;
+  let currentResult=null;
+  let currentCycleTimer=null;
+  const currentCycleEnabled=new Set();
   let calendarMode='solar';
   const dateDrafts={solar:{year:'',month:'',day:'',intercalation:false},lunar:{year:'',month:'',day:'',intercalation:false}};
 
@@ -197,6 +201,7 @@ export function mountManseCalculator(root) {
     if(!resultShown) return;
     // Never leave stale calculated pillars visible underneath changed birth data.
     resultShown=false;variants.replaceChildren();q('notices').replaceChildren();q('notices').hidden=true;
+    clearCurrentCycles();
     q('result-title').textContent='사주 결과';
     q('calculation-details').hidden=true;summary.hidden=true;q('converted').hidden=true;q('empty').hidden=false;
     q('empty').textContent='입력이 변경되었습니다. 다시 계산해 주세요.';status.textContent='다시 계산 필요';
@@ -254,6 +259,7 @@ export function mountManseCalculator(root) {
     const group=node('fieldset','manse-cycle-choice');
     group.id=root.id+'-cycle-choice-'+variantIndex;
     group.dataset.anchor=anchorGanji;
+    group.dataset.variantIndex=variantIndex;
     group.append(node('legend','',anchorGanji+'년이'));
     const options=node('div','manse-cycle-choice-options');
     for(const [value,text] of [
@@ -271,7 +277,86 @@ export function mountManseCalculator(root) {
     group.append(options);
     return group;
   }
+  function clearCurrentCycles() {
+    currentResult=null;currentCycleEnabled.clear();
+    if(currentCycleTimer!==null) {
+      window.clearTimeout(currentCycleTimer);timers.delete(currentCycleTimer);currentCycleTimer=null;
+    }
+  }
+  function currentCyclesPanel(index) {
+    const panel=node('section','manse-current-cycles');panel.dataset.variantIndex=index;
+    const title=node('h4','','오늘의 연·월·일 절기');title.id=root.id+'-current-title-'+index;
+    panel.setAttribute('aria-labelledby',title.id);
+    const rule=node('p','manse-help','적용 기준: 연은 입춘부터 다음 입춘까지, 월은 절입부터 다음 절입까지입니다. 반년·반달은 각 기간의 중간 시점으로 계산하고, 일은 선택한 시간 보정·날짜 변경 기준을 따릅니다.');
+    rule.id=root.id+'-current-rule-'+index;
+    const button=node('button','manse-current-button','오늘의 절기 보기');button.type='button';button.disabled=true;
+    button.setAttribute('aria-describedby',rule.id);
+    const message=node('p','manse-current-message','위에서 입춘 또는 입추를 선택해 주세요.');
+    const result=node('div','manse-current-result');result.hidden=true;result.setAttribute('role','status');
+    panel.append(rule,button,message,result);
+    panel.prepend(title);
+    return panel;
+  }
+  function updateCurrentCycles(section,index,instant=Date.now()) {
+    if(!currentResult) return;
+    const panel=section.querySelector('.manse-current-cycles');
+    const choice=section.querySelector('.manse-cycle-choice input:checked')?.value;
+    const ready=choice==='spring'||choice==='autumn';
+    const button=panel.querySelector('button'),message=panel.querySelector('.manse-current-message'),result=panel.querySelector('.manse-current-result');
+    button.disabled=!ready;result.replaceChildren();result.hidden=true;message.hidden=false;
+    button.textContent=currentCycleEnabled.has(index)?'현재 시각으로 새로고침':'오늘의 절기 보기';
+    if(!ready) {
+      message.textContent=choice==='undecided'?'아직 판단 불가능을 선택했습니다. 기준을 정하면 오늘의 절기를 볼 수 있습니다.':'위에서 입춘 또는 입추를 선택해 주세요.';
+      return;
+    }
+    if(!currentCycleEnabled.has(index)) {
+      message.textContent='계산 기준을 확인한 뒤 오늘의 절기 보기를 눌러 주세요.';
+      return;
+    }
+    try {
+      const value=buildCurrentCycles(engine,{anchorGanji:currentResult.variants[index].natural,choice,input:currentResult.input,instant,rule:CURRENT_CYCLE_RULE});
+      const stamp=node('p','manse-current-stamp',`${value.timestamp} 기준 · ${value.offset} · ${value.anchorGanji}년이 ${choice==='spring'?'입춘':'입추'}`);
+      const cards=node('dl','manse-current-grid');
+      for(const item of value.periods) {
+        const labels={year:['연 절기','60년', '년'],month:['월 절기','60개월','월'],day:['일 절기','60일','일']};
+        const [label,cycle,suffix]=labels[item.unit];
+        const card=node('div','manse-current-card');card.dataset.unit=item.unit;card.dataset.term=item.term;
+        card.append(node('dt','',label),node('dd','manse-current-term',item.term),node('dd','manse-current-scale',`${cycle} 주기 · ${item.ganji}${suffix}`));cards.append(card);
+      }
+      result.append(stamp,cards,node('p','manse-help','선택한 기준에 따른 자연순환 절기입니다. 하루 중 절기가 바뀔 수 있어 현재 시각을 기준으로 표시합니다.'));
+      panel.dataset.choice=choice;message.hidden=true;result.hidden=false;
+    } catch(e) {
+      message.textContent=e.message||'오늘의 절기를 계산하지 못했습니다. 다시 확인해 주세요.';
+    }
+  }
+  function refreshCurrentCycles() {
+    if(!currentResult) return;
+    const instant=Date.now();
+    [...variants.querySelectorAll('.manse-variant')].forEach((section,index)=>updateCurrentCycles(section,index,instant));
+  }
+  function scheduleCurrentCycles() {
+    if(currentCycleTimer!==null||!currentCycleEnabled.size) return;
+    const timer=window.setTimeout(()=>{
+      timers.delete(timer);currentCycleTimer=null;
+      if(controller.signal.aborted||!currentResult||!currentCycleEnabled.size) return;
+      refreshCurrentCycles();scheduleCurrentCycles();
+    },60000);
+    currentCycleTimer=timer;timers.add(timer);
+  }
+  listen(variants,'change',event=>{
+    const group=event.target.closest('.manse-cycle-choice');
+    if(group&&event.target.matches('input[type="radio"]')) updateCurrentCycles(group.closest('.manse-variant'),Number(group.dataset.variantIndex));
+  });
+  listen(variants,'click',event=>{
+    const button=event.target.closest('.manse-current-button');
+    if(!button||button.disabled||!currentResult) return;
+    const panel=button.closest('.manse-current-cycles'),index=Number(panel.dataset.variantIndex);
+    currentCycleEnabled.add(index);updateCurrentCycles(panel.closest('.manse-variant'),index);scheduleCurrentCycles();
+  });
+  listen(window,'focus',refreshCurrentCycles);
+  listen(document,'visibilitychange',()=>{if(!document.hidden) refreshCurrentCycles();});
   function render(r) {
+    clearCurrentCycles();currentResult=r;
     resultShown=true;variants.replaceChildren();q('facts').replaceChildren();q('notices').replaceChildren();q('notices').hidden=true;
     const name=q('name').value.trim();
     q('result-title').textContent=name?`${name}님의 사주 결과`:'사주 결과';
@@ -298,7 +383,7 @@ export function mountManseCalculator(root) {
       }
       section.append(grid);
       const natural=node('div','manse-natural');natural.append(node('span','manse-muted','자연순환 결과'),node('strong','',v.natural+'년이 입춘 또는 입추입니다.'));
-      section.append(natural,naturalCyclesTable(v.natural,i.year),node('p','manse-cycle-note','+0.5년은 해당 간지 기준점에서 반년 뒤입니다.'),naturalCycleChoice(v.natural,index));variants.append(section);
+      section.append(natural,naturalCyclesTable(v.natural,i.year),node('p','manse-cycle-note','+0.5년은 해당 간지 기준점에서 반년 뒤입니다.'),naturalCycleChoice(v.natural,index),currentCyclesPanel(index));variants.append(section);
     });
     if(r.unknown) addNotice('출생 시각을 몰라 시주는 미정입니다.'+(r.variants.length>1?' 날짜·절입 경계에서 가능한 명식을 함께 표시합니다.':''));
     else if(r.variants.length>1) addNotice('입력한 시각에 경계가 있어 결과가 둘 이상입니다. 정확한 출생 초 또는 당시의 시간 기록을 확인해 주세요.');

@@ -103,6 +103,19 @@
 #manse-calculator .manse-cycle-choice-option { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 48px; padding: 10px; border: 1px solid var(--manse-line); border-radius: 8px; cursor: pointer; }
 #manse-calculator .manse-cycle-choice-option span { min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
 #manse-calculator .manse-cycle-choice-option:has(input:checked) { background: var(--manse-soft); border-color: var(--manse-green); color: var(--manse-green); }
+#manse-calculator .manse-cycle-choice-option:has(input:focus-visible) { outline: auto; }
+#manse-calculator .manse-current-cycles { margin-top: 18px; padding: 16px; border: 1px solid var(--manse-line); border-radius: 10px; }
+#manse-calculator .manse-current-cycles h4 { margin: 0; font-size: 1.05rem; font-weight: 500; }
+#manse-calculator .manse-current-button { margin-top: 12px; min-height: 44px; padding: 9px 14px; font: inherit; border: 1px solid var(--manse-green); border-radius: 8px; color: var(--manse-button-ink); background: var(--manse-button); cursor: pointer; }
+#manse-calculator .manse-current-button:disabled { cursor: default; }
+#manse-calculator .manse-current-message, #manse-calculator .manse-current-stamp { color: var(--manse-muted); }
+#manse-calculator .manse-current-result { margin-top: 12px; }
+#manse-calculator .manse-current-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin: 12px 0 0; }
+#manse-calculator .manse-current-card { min-width: 0; padding: 12px 6px; border-radius: 8px; background: var(--manse-soft); text-align: center; overflow-wrap: anywhere; }
+#manse-calculator .manse-current-card dt { color: var(--manse-muted); }
+#manse-calculator .manse-current-card dd { margin: 4px 0 0; }
+#manse-calculator .manse-current-term { font-size: 1.25rem; font-weight: 500; color: var(--manse-green); }
+#manse-calculator .manse-current-scale { font-size: .85rem; color: var(--manse-muted); }
 #manse-calculator .manse-notices { margin-top: 15px; padding: 12px; color: var(--manse-alert); background: var(--manse-alert-bg); border-radius: 8px; }
 #manse-calculator .manse-notices p { margin: 0; }
 #manse-calculator .manse-notices p + p { margin-top: 7px; }
