@@ -66,8 +66,8 @@ export function CalculatorMarkup() {
             <label className="manse-check"><input id="wm-dst" name="dst" type="checkbox" disabled />출생 당시 서머타임 +1시간 적용</label>
           </div>
           <div className="manse-setting-row">
-            <label className="manse-field" htmlFor="wm-clock"><span>일주·시주 시간 기준</span><select id="wm-clock" name="clock" required><option value="">선택해 주세요</option><option value="standard">당시 표준시 · 서머타임 제외</option><option value="meridian">동경 127.5° 기준 보정</option><option value="longitude">출생지 경도 보정 · 평태양시</option></select></label>
-            <label className="manse-field" htmlFor="wm-boundary"><span>날짜 변경 기준</span><select id="wm-boundary" name="boundary" required><option value="">선택해 주세요</option><option value="zi23">23시부터 다음 날</option><option value="split">야자시·조자시 분리</option><option value="midnight">0시부터 다음 날</option></select></label>
+            <label className="manse-field" htmlFor="wm-clock"><span>일주·시주 시간 기준</span><select id="wm-clock" name="clock" defaultValue="standard" required><option value="standard">당시 표준시 · 서머타임 제외</option><option value="meridian">동경 127.5° 기준 보정</option><option value="longitude">출생지 경도 보정 · 평태양시</option></select></label>
+            <label className="manse-field" htmlFor="wm-boundary"><span>날짜 변경 기준</span><select id="wm-boundary" name="boundary" defaultValue="zi23" required><option value="zi23">23시부터 다음 날</option><option value="split">야자시·조자시 분리</option><option value="midnight">0시부터 다음 날</option></select></label>
           </div>
           <div id="wm-longitude-field" className="manse-setting-row" hidden>
             <label className="manse-field" htmlFor="wm-longitude"><span>출생지 경도 · 동경 + / 서경 −</span><input id="wm-longitude" name="longitude" type="text" inputMode="decimal" placeholder="예: 127.5" disabled /></label>

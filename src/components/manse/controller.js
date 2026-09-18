@@ -182,10 +182,12 @@ export function mountManseCalculator(root) {
     split:'보정된 시각의 23~24시는 일주를 당일로, 시주 천간을 다음 날 기준으로 계산합니다.',
     midnight:'보정된 시각의 0시에 날짜가 바뀌며, 시주 천간도 해당 날짜의 일간으로 계산합니다.'
   };
-  listen(q('boundary'),'change',()=>{
+  function updateBoundaryHelp() {
     q('boundary-help').textContent=boundaryHelp[q('boundary').value]||'';
     q('boundary-help').hidden=!q('boundary').value;
-  });
+  }
+  listen(q('boundary'),'change',updateBoundaryHelp);
+  updateBoundaryHelp();
   function clearError() {
     error.hidden=true;error.textContent='';
     for(const field of form.querySelectorAll('[aria-invalid="true"]')) field.removeAttribute('aria-invalid');
