@@ -4,6 +4,8 @@ import { createCalendarAdapter } from "../../lib/manse/calendar-adapter.js";
 import { createManseEngine } from "../../lib/manse/engine.js";
 import { buildNaturalCycleCases } from "../../lib/manse/natural-cycles.js";
 import { buildCurrentCycles, CURRENT_CYCLE_RULE } from "../../lib/manse/current-cycles.js";
+import { profileVariantKey } from "../../lib/manse/profile-store.js";
+import { mountSavedProfiles } from "./saved-profiles.js";
 import timezoneData from "../../lib/manse/timezone.json";
 
 // Keep the approved native-input behavior independent of React re-renders.
@@ -36,6 +38,7 @@ export function mountManseCalculator(root) {
   let currentCycleTimer=null;
   const currentCycleEnabled=new Set();
   let calendarMode='solar';
+  let profileManager=null;
   const dateDrafts={solar:{year:'',month:'',day:'',intercalation:false},lunar:{year:'',month:'',day:'',intercalation:false}};
 
   function option(list,value,label) {
@@ -75,6 +78,14 @@ export function mountManseCalculator(root) {
   // Native input + datalist uses the input value for both typing and selection.
   // There is no second form control, selected-value state, or confirmation step.
   listen(intercalation,'change',()=>{updateMonths();updateDays();});
+  function updateCalendarFields() {
+    intercalation.disabled=calendarMode!=='lunar';q('intercalation-field').hidden=calendarMode!=='lunar';
+    updateMonths();updateDays();
+    q('date-legend').textContent=(calendarMode==='lunar'?'음력':'양력')+' 생년월일';
+    q('calendar-help').textContent=calendarMode==='lunar'
+      ?`한국 음력 ${calendarAdapter.format(calendarAdapter.lunarMinimum)}~${calendarAdapter.format(calendarAdapter.lunarMaximum)} · 윤달 생일은 ‘윤달’에 표시`
+      :'양력 1910.01.01~2050.12.31';
+  }
   for(const radio of form.querySelectorAll('input[name="calendar"]')) {
     listen(radio,'change',()=>{
       if(!radio.checked||radio.value===calendarMode) return;
@@ -82,12 +93,7 @@ export function mountManseCalculator(root) {
       calendarMode=radio.value;
       const saved=dateDrafts[calendarMode];
       year.value=saved.year;month.value=saved.month;day.value=saved.day;intercalation.checked=saved.intercalation;
-      intercalation.disabled=calendarMode!=='lunar';q('intercalation-field').hidden=calendarMode!=='lunar';
-      updateMonths();updateDays();
-      q('date-legend').textContent=(calendarMode==='lunar'?'음력':'양력')+' 생년월일';
-      q('calendar-help').textContent=calendarMode==='lunar'
-        ?`한국 음력 ${calendarAdapter.format(calendarAdapter.lunarMinimum)}~${calendarAdapter.format(calendarAdapter.lunarMaximum)} · 윤달 생일은 ‘윤달’에 표시`
-        :'양력 1910.01.01~2050.12.31';
+      updateCalendarFields();
     });
   }
 
@@ -163,24 +169,29 @@ export function mountManseCalculator(root) {
       if(Number.isFinite(n)) field.value=String(n).padStart(2,'0');
     });
   }
-  listen(unknown,'change',()=>{
-    if(unknown.checked) {rememberedTime={hour:hour.value,minute:minute.value};hour.value='';minute.value='';}
-    else {hour.value=rememberedTime.hour;minute.value=rememberedTime.minute;}
+  function updateTimeFields() {
     for(const field of [hour,minute]) {
       field.disabled=unknown.checked;field.required=!unknown.checked;
       field.placeholder=unknown.checked?'모름':field===hour?'0~23':'0~59';
     }
+  }
+  listen(unknown,'change',()=>{
+    if(unknown.checked) {rememberedTime={hour:hour.value,minute:minute.value};hour.value='';minute.value='';}
+    else {hour.value=rememberedTime.hour;minute.value=rememberedTime.minute;}
+    updateTimeFields();
   });
-  listen(q('zone'),'change',()=>{
+  function updateZoneFields() {
     const foreign=q('zone').value==='foreign';
     q('foreign-fields').hidden=!foreign;
     q('offset').disabled=!foreign;q('dst').disabled=!foreign;q('offset').required=foreign;
-  });
-  listen(q('clock'),'change',()=>{
+  }
+  listen(q('zone'),'change',updateZoneFields);
+  function updateClockFields() {
     const longitude=q('clock').value==='longitude';
     q('longitude-field').hidden=!longitude;
     q('longitude').disabled=!longitude;q('longitude').required=longitude;
-  });
+  }
+  listen(q('clock'),'change',updateClockFields);
   const boundaryHelp={
     zi23:'보정된 시각의 23시부터 일주와 자시의 천간을 다음 날 기준으로 계산합니다.',
     split:'보정된 시각의 23~24시는 일주를 당일로, 시주 천간을 다음 날 기준으로 계산합니다.',
@@ -196,9 +207,15 @@ export function mountManseCalculator(root) {
     error.hidden=true;error.textContent='';
     for(const field of form.querySelectorAll('[aria-invalid="true"]')) field.removeAttribute('aria-invalid');
   }
-  function markDirty() {
+  function markDirty(event) {
     clearError();
+    profileManager?.markChanged();
     if(!resultShown) return;
+    // Renaming a saved person does not change the birth calculation or its choices.
+    if(event?.target===q('name')) {
+      const name=q('name').value.trim();q('result-title').textContent=name?`${name}님의 사주 결과`:'사주 결과';
+      return;
+    }
     // Never leave stale calculated pillars visible underneath changed birth data.
     resultShown=false;variants.replaceChildren();q('notices').replaceChildren();q('notices').hidden=true;
     clearCurrentCycles();
@@ -345,13 +362,17 @@ export function mountManseCalculator(root) {
   }
   listen(variants,'change',event=>{
     const group=event.target.closest('.manse-cycle-choice');
-    if(group&&event.target.matches('input[type="radio"]')) updateCurrentCycles(group.closest('.manse-variant'),Number(group.dataset.variantIndex));
+    if(group&&event.target.matches('input[type="radio"]')) {
+      updateCurrentCycles(group.closest('.manse-variant'),Number(group.dataset.variantIndex));profileManager?.markChanged();
+    }
   });
   listen(variants,'click',event=>{
     const button=event.target.closest('.manse-current-button');
     if(!button||button.disabled||!currentResult) return;
     const panel=button.closest('.manse-current-cycles'),index=Number(panel.dataset.variantIndex);
+    const firstUse=!currentCycleEnabled.has(index);
     currentCycleEnabled.add(index);updateCurrentCycles(panel.closest('.manse-variant'),index);scheduleCurrentCycles();
+    if(firstUse) profileManager?.markChanged();
   });
   listen(window,'focus',refreshCurrentCycles);
   listen(document,'visibilitychange',()=>{if(!document.hidden) refreshCurrentCycles();});
@@ -406,32 +427,94 @@ export function mountManseCalculator(root) {
     fact('생일 변환','한국 음력 기준 · 변환한 양력 날짜로 사주 계산');
     fact('계산 범위','양력 1910.01.01–2050.12.31 · 연·월주는 절입 순간으로 계산');
   }
-  listen(form,'submit',event=>{
-    event.preventDefault();clearError();
-    try {
-      const selectedGender=form.querySelector('input[name="gender"]:checked');
-      const parseDecimal=id=>q(id).value.trim()===''?NaN:Number(q(id).value);
-      const input={
+  function readBirthInput() {
+    const selectedGender=form.querySelector('input[name="gender"]:checked');
+    const parseDecimal=id=>q(id).value.trim()===''?NaN:Number(q(id).value);
+    return {
         calendar:calendarMode,intercalation:calendarMode==='lunar'&&intercalation.checked,
         year:parseDigits(year.value,2050,4),month:parseDigits(month.value,12,2),day:parseDigits(day.value,31,2),
         hour:parseDigits(hour.value,23,2),minute:parseDigits(minute.value,59,2),unknown:unknown.checked,
         gender:selectedGender?selectedGender.value:'',zone:q('zone').value,
         offset:parseDecimal('offset'),dst:q('dst').checked,
         clock:q('clock').value,longitude:parseDecimal('longitude'),boundary:q('boundary').value
-      };
-      const r=engine.calculate(input);
-      if(!unknown.checked) {hour.value=String(input.hour).padStart(2,'0');minute.value=String(input.minute).padStart(2,'0');}
-      render(r);
-    } catch(e) {
-      error.textContent=e.message||'계산하지 못했습니다. 입력값을 확인해 주세요.';error.hidden=false;
-      const field=e.field==='gender'?form.querySelector('input[name="gender"]'):e.field==='calendar'?q('calendar-solar'):q(e.field||'year');
-      if(field) {field.setAttribute('aria-invalid','true');field.focus();}
-    }
+    };
+  }
+  function showInputError(e) {
+    error.textContent=e.message||'계산하지 못했습니다. 입력값을 확인해 주세요.';error.hidden=false;
+    const field=e.field==='gender'?form.querySelector('input[name="gender"]'):e.field==='calendar'?q('calendar-solar'):q(e.field||'year');
+    if(field) {field.setAttribute('aria-invalid','true');field.focus();}
+  }
+  function calculateForm() {
+    const input=readBirthInput(),result=engine.calculate(input);
+    if(!unknown.checked) {hour.value=String(input.hour).padStart(2,'0');minute.value=String(input.minute).padStart(2,'0');}
+    render(result);
+    return result;
+  }
+  listen(form,'submit',event=>{
+    event.preventDefault();clearError();
+    try {calculateForm();profileManager?.markChanged();}
+    catch(e) {showInputError(e);}
   });
+
+  function cancelPendingFormWork() {
+    clearCurrentCycles();
+    for(const timer of timers) window.clearTimeout(timer);
+    timers.clear();
+  }
+  function readProfileDraft() {
+    clearError();
+    const name=q('name').value.trim();
+    if(!name||name.length>100) {
+      const e=new Error('저장할 이름을 1~100자로 입력해 주세요.');e.field='name';throw e;
+    }
+    if(!currentResult) calculateForm();
+    const groups=[...variants.querySelectorAll('.manse-cycle-choice')];
+    const choices=currentResult.variants.flatMap((variant,index)=>{
+      const value=groups[index].querySelector('input:checked')?.value;
+      return value?[{key:profileVariantKey(variant),value,todayRule:currentCycleEnabled.has(index)?CURRENT_CYCLE_RULE:null}]:[];
+    });
+    return {name,input:readBirthInput(),choices};
+  }
+  function applyProfile(record) {
+    // Validate and calculate first, so a damaged record never replaces a valid draft.
+    const result=engine.calculate(record.input),i=record.input;
+    cancelPendingFormWork();clearError();
+    calendarMode=i.calendar;
+    for(const mode of ['solar','lunar']) dateDrafts[mode]={year:'',month:'',day:'',intercalation:false};
+    const pad=n=>String(n).padStart(2,'0');
+    q('name').value=record.name;year.value=String(i.year);month.value=pad(i.month);day.value=pad(i.day);
+    dateDrafts[calendarMode]={year:year.value,month:month.value,day:day.value,intercalation:i.intercalation};
+    for(const radio of form.querySelectorAll('input[name="calendar"]')) radio.checked=radio.value===calendarMode;
+    intercalation.checked=i.intercalation;unknown.checked=i.unknown;
+    rememberedTime={hour:i.unknown?'':pad(i.hour),minute:i.unknown?'':pad(i.minute)};
+    hour.value=rememberedTime.hour;minute.value=rememberedTime.minute;
+    for(const radio of form.querySelectorAll('input[name="gender"]')) radio.checked=radio.value===i.gender;
+    q('zone').value=i.zone;q('offset').value=i.offset===null?'':String(i.offset);q('dst').checked=i.dst;
+    q('clock').value=i.clock;q('longitude').value=i.longitude===null?'':String(i.longitude);q('boundary').value=i.boundary;
+    updateCalendarFields();updateTimeFields();updateZoneFields();updateClockFields();updateBoundaryHelp();
+    render(result);
+    const choices=new Map(record.choices.map(choice=>[choice.key,choice]));
+    const groups=[...variants.querySelectorAll('.manse-cycle-choice')];
+    result.variants.forEach((variant,index)=>{
+      const saved=choices.get(profileVariantKey(variant));
+      if(!saved) return;
+      for(const input of groups[index].querySelectorAll('input')) input.checked=input.value===saved.value;
+      if(saved.todayRule===CURRENT_CYCLE_RULE) currentCycleEnabled.add(index);
+    });
+    refreshCurrentCycles();scheduleCurrentCycles();
+  }
+  function resetProfileForm() {
+    markDirty();cancelPendingFormWork();form.reset();calendarMode='solar';rememberedTime={hour:'',minute:''};
+    for(const mode of ['solar','lunar']) dateDrafts[mode]={year:'',month:'',day:'',intercalation:false};
+    updateCalendarFields();updateTimeFields();updateZoneFields();updateClockFields();updateBoundaryHelp();
+    q('empty').textContent='계산하면 사주팔자와 입춘·입추 두 경우의 사이클, 절기별 연도 두 개를 확인할 수 있습니다.';status.textContent='입력 대기';
+  }
+  profileManager=mountSavedProfiles(root,{listen,node,readDraft:readProfileDraft,applyProfile,resetForm:resetProfileForm,showInputError});
 
   q('submit').disabled=false;
   return () => {
     controller.abort();
+    profileManager.cleanup();
     for(const timer of timers) window.clearTimeout(timer);
     timers.clear();
     q('submit').disabled=true;
