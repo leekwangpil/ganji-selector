@@ -60,7 +60,7 @@ export function CalculatorMarkup() {
         </div>
         <fieldset className="manse-settings">
           <legend>계산 기준</legend>
-          <label className="manse-field" htmlFor="wm-zone"><span>출생 시간대</span><select id="wm-zone" name="zone" required><option value="">선택해 주세요</option><option value="korea">한국 · 과거 표준시·서머타임 자동 반영</option><option value="foreign">해외 · UTC 시차 직접 입력</option></select></label>
+          <label className="manse-field" htmlFor="wm-zone"><span>출생 시간대</span><select id="wm-zone" name="zone" defaultValue="korea" required><option value="korea">한국 · 과거 표준시·서머타임 자동 반영</option><option value="foreign">해외 · UTC 시차 직접 입력</option></select></label>
           <div id="wm-foreign-fields" className="manse-setting-row" hidden>
             <label className="manse-field" htmlFor="wm-offset"><span>출생 당시 표준 UTC 시차</span><input id="wm-offset" name="offset" type="text" inputMode="decimal" placeholder="예: 9 또는 -5" disabled /></label>
             <label className="manse-check"><input id="wm-dst" name="dst" type="checkbox" disabled />출생 당시 서머타임 +1시간 적용</label>
