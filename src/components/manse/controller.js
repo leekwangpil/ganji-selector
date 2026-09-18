@@ -3,7 +3,7 @@ import KoreanCalendarClass from "korean-lunar-calendar";
 import { createCalendarAdapter } from "../../lib/manse/calendar-adapter.js";
 import { createManseEngine } from "../../lib/manse/engine.js";
 import { buildNaturalCycleCases } from "../../lib/manse/natural-cycles.js";
-import { buildNaturalPeriodCases, PERIOD_UNITS, todayInKorea } from "../../lib/manse/period-cycles.js";
+import { buildCurrentCycles, CURRENT_CYCLE_RULE } from "../../lib/manse/current-cycles.js";
 import timezoneData from "../../lib/manse/timezone.json";
 
 // Keep the approved native-input behavior independent of React re-renders.
@@ -33,10 +33,8 @@ export function mountManseCalculator(root) {
   let rememberedTime={hour:'',minute:''};
   let resultShown=false;
   let currentResult=null;
-  const cycleChoices=new Map();
-  const today=todayInKorea();
-  q('cycle-start-month').value=today.slice(0,7);
-  q('cycle-start-day').value=today;
+  let currentCycleTimer=null;
+  const currentCycleEnabled=new Set();
   let calendarMode='solar';
   const dateDrafts={solar:{year:'',month:'',day:'',intercalation:false},lunar:{year:'',month:'',day:'',intercalation:false}};
 
@@ -203,7 +201,7 @@ export function mountManseCalculator(root) {
     if(!resultShown) return;
     // Never leave stale calculated pillars visible underneath changed birth data.
     resultShown=false;variants.replaceChildren();q('notices').replaceChildren();q('notices').hidden=true;
-    currentResult=null;cycleChoices.clear();q('cycle-controls').hidden=true;q('cycle-error').hidden=true;
+    clearCurrentCycles();
     q('result-title').textContent='사주 결과';
     q('calculation-details').hidden=true;summary.hidden=true;q('converted').hidden=true;q('empty').hidden=false;
     q('empty').textContent='입력이 변경되었습니다. 다시 계산해 주세요.';status.textContent='다시 계산 필요';
@@ -215,31 +213,20 @@ export function mountManseCalculator(root) {
   }
   function fact(label,value) {q('facts').append(node('dt','',label),node('dd','',value));}
   function addNotice(text) {q('notices').append(node('p','',text));q('notices').hidden=false;}
-  function currentCycleUnit() {
-    return q('cycle-controls').querySelector('input[name="cycle-unit"]:checked').value;
-  }
-  function naturalCyclesTable(anchorGanji,birthYear,unit) {
-    const info=PERIOD_UNITS[unit];
-    const period=unit==='year'?null:buildNaturalPeriodCases(anchorGanji,unit,q('cycle-start-'+unit).value);
-    const cases=period?period.cases:buildNaturalCycleCases(anchorGanji,birthYear).map(scenario=>({
-      ...scenario,rows:scenario.rows.map(row=>({...row,elapsed:row.elapsedYears,extra:row.extraYears,periods:row.calendarYears.map(year=>({year,label:year+'년'}))}))
-    }));
-    const table=node('table','manse-cycle-table');table.dataset.anchor=anchorGanji;table.dataset.unit=unit;
-    if(unit==='year') table.dataset.birthYear=birthYear;
-    else {table.dataset.start=period.start.key;table.dataset.end=period.end.key;}
+  function naturalCyclesTable(anchorGanji,birthYear) {
+    const cases=buildNaturalCycleCases(anchorGanji,birthYear);
+    const table=node('table','manse-cycle-table');table.dataset.anchor=anchorGanji;table.dataset.birthYear=birthYear;
     const caption=node('caption');
-    const scale=unit==='year'?'24절기 · 한 절기 2.5년 · 60년 간격의 두 연도':`24절기 · 한 절기 2.5${info.measure} · 60${info.measure} 간격의 두 ${unit==='month'?'연·월':'날짜'}`;
-    const range=unit==='year'?`연도 표시: ${birthYear}~${birthYear+119}년 · 출생연도부터 120년`:`표시 기간: ${period.start.label}~${period.end.label} · 120${info.measure}`;
-    caption.append(node('span','manse-cycle-title','입춘·입추 두 경우의 사이클'),node('span','manse-cycle-scale',scale),node('span','manse-cycle-scale',range));
+    caption.append(node('span','manse-cycle-title','입춘·입추 두 경우의 사이클'),node('span','manse-cycle-scale','24절기 · 한 절기 2.5년 · 60년 간격의 두 연도'),node('span','manse-cycle-scale',`연도 표시: ${birthYear}~${birthYear+119}년 · 출생연도부터 120년`));
     const columns=node('colgroup');
     for(const className of ['manse-cycle-term-column','manse-cycle-years-column','manse-cycle-case-column','manse-cycle-case-column']) columns.append(node('col',className));
     const head=node('thead'),header=node('tr');
     const termHeader=node('th','','절기');termHeader.scope='col';
-    const yearsHeader=node('th');yearsHeader.scope='col';yearsHeader.append(node('span','','입춘 후'),node('span','manse-cycle-case-label',`경과(${info.measure})`));
+    const yearsHeader=node('th');yearsHeader.scope='col';yearsHeader.append(node('span','','입춘 후'),node('span','manse-cycle-case-label','경과(년)'));
     header.append(termHeader,yearsHeader);
     for(const scenario of cases) {
       const th=node('th');th.scope='col';th.dataset.anchorTerm=scenario.anchorTerm;
-      th.append(node('span','manse-cycle-ganji',anchorGanji+info.suffix),node('span','manse-cycle-case-label',scenario.anchorTerm+'인 경우'));
+      th.append(node('span','manse-cycle-ganji',anchorGanji+'년'),node('span','manse-cycle-case-label',scenario.anchorTerm+'인 경우'));
       header.append(th);
     }
     head.append(header);
@@ -247,25 +234,20 @@ export function mountManseCalculator(root) {
     // Each of the 24 terms lists its two occurrences; a duplicate closing
     // spring row would repeat the same pair of years and suggest a third cycle.
     cases[0].rows.slice(0,24).forEach((entry,index)=>{
-      const tr=node('tr',index%12===0?'manse-cycle-key':'');tr.dataset.term=entry.term;tr.dataset.elapsed=entry.elapsed;
+      const tr=node('tr',index%12===0?'manse-cycle-key':'');tr.dataset.term=entry.term;tr.dataset.elapsed=entry.elapsedYears;
       const termCell=node('th','',entry.label);termCell.scope='row';
-      tr.append(termCell,node('td','manse-cycle-years',String(entry.elapsed)));
+      tr.append(termCell,node('td','manse-cycle-years',String(entry.elapsedYears)));
       for(const scenario of cases) {
         const item=scenario.rows[index],cell=node('td');
-        cell.dataset.ganji=item.ganji;cell.dataset.extra=item.extra;
-        if(unit==='year') cell.dataset.extraYears=item.extra;
+        cell.dataset.ganji=item.ganji;cell.dataset.extraYears=item.extraYears;
         const calendarYears=node('div','manse-cycle-calendar-years');
-        item.periods.forEach((date,index)=>{
+        item.calendarYears.forEach((year,index)=>{
           if(index) calendarYears.append(document.createTextNode(' '));
-          const yearLabel=node('span',unit==='year'?'manse-cycle-calendar-year':'manse-cycle-calendar-date');
-          if(unit==='day') yearLabel.append(document.createTextNode(String(date.year)),node('wbr'),document.createTextNode(date.label.slice(4)));
-          else yearLabel.textContent=date.label;
-          if(unit==='year') yearLabel.dataset.year=date.year;
-          else yearLabel.dataset.date=date.key;
+          const yearLabel=node('span','manse-cycle-calendar-year',year+'년');yearLabel.dataset.year=year;
           calendarYears.append(yearLabel);
         });
-        const value=node('span','manse-cycle-value');value.append(node('span','manse-cycle-ganji',item.ganji+info.suffix));
-        if(item.extra) value.append(node('span','manse-cycle-half',` +0.5${info.measure}`));
+        const value=node('span','manse-cycle-value');value.append(node('span','manse-cycle-ganji',item.ganji+'년'));
+        if(item.extraYears) value.append(node('span','manse-cycle-half',' +0.5년'));
         cell.append(calendarYears,value);tr.append(cell);
       }
       body.append(tr);
@@ -273,11 +255,12 @@ export function mountManseCalculator(root) {
     table.append(caption,columns,head,body);
     return table;
   }
-  function naturalCycleChoice(anchorGanji,variantIndex,unit) {
+  function naturalCycleChoice(anchorGanji,variantIndex) {
     const group=node('fieldset','manse-cycle-choice');
-    group.id=root.id+'-cycle-choice-'+variantIndex+'-'+unit;
-    group.dataset.anchor=anchorGanji;group.dataset.unit=unit;group.dataset.variantIndex=variantIndex;
-    group.append(node('legend','',anchorGanji+PERIOD_UNITS[unit].suffix+'이'));
+    group.id=root.id+'-cycle-choice-'+variantIndex;
+    group.dataset.anchor=anchorGanji;
+    group.dataset.variantIndex=variantIndex;
+    group.append(node('legend','',anchorGanji+'년이'));
     const options=node('div','manse-cycle-choice-options');
     for(const [value,text] of [
       ['spring','입춘인 경우가 더 적합'],
@@ -287,7 +270,6 @@ export function mountManseCalculator(root) {
       const label=node('label','manse-cycle-choice-option');
       const input=node('input');
       input.type='radio';input.name=group.id;input.value=value;
-      input.checked=cycleChoices.get(variantIndex+':'+unit)===value;
       input.id=group.id+'-'+value;
       label.htmlFor=input.id;
       label.append(input,node('span','',text));options.append(label);
@@ -295,45 +277,86 @@ export function mountManseCalculator(root) {
     group.append(options);
     return group;
   }
-  function renderCycleViews() {
-    const unit=currentCycleUnit();
-    q('cycle-period-fields').hidden=unit==='year';q('cycle-period-help').hidden=unit==='year';
-    q('cycle-month-field').hidden=unit!=='month';q('cycle-day-field').hidden=unit!=='day';
-    q('cycle-today').textContent=unit==='month'?'이번 달부터':'오늘부터';
-    q('cycle-error').hidden=true;q('cycle-error').textContent='';
-    q('cycle-start-month').removeAttribute('aria-invalid');q('cycle-start-day').removeAttribute('aria-invalid');
-    if(!currentResult) return;
-    const views=[...variants.querySelectorAll('.manse-cycle-view')];
-    try {
-      const note=unit==='year'?'+0.5년은 해당 간지 기준점에서 반년 뒤입니다.':unit==='month'
-        ?'연·월은 해당 월 간지가 시작되는 달입니다. 월 간지는 절입 기준이며, +0.5개월은 해당 기준점에서 반달 뒤입니다. 정확한 날짜로 환산하지 않습니다.'
-        :'날짜는 양력 일진 기준입니다. +0.5일은 해당 간지 기준점에서 반일(12시간) 뒤입니다. 자정 전후의 경계는 선택한 날짜 변경 기준을 따릅니다.';
-      const next=views.map((view,index)=>{
-        const anchor=currentResult.variants[index].natural;
-        const natural=node('div','manse-natural');
-        natural.append(node('span','manse-muted','자연순환 결과'),node('strong','',anchor+PERIOD_UNITS[unit].suffix+'이 입춘 또는 입추입니다.'));
-        return [natural,naturalCyclesTable(anchor,currentResult.input.year,unit),node('p','manse-cycle-note',note),naturalCycleChoice(anchor,index,unit)];
-      });
-      views.forEach((view,index)=>view.replaceChildren(...next[index]));
-    } catch(e) {
-      views.forEach(view=>view.replaceChildren());
-      q('cycle-error').textContent=e.message||'표시할 기간을 확인해 주세요.';q('cycle-error').hidden=false;
-      if(unit!=='year') q('cycle-start-'+unit).setAttribute('aria-invalid','true');
+  function clearCurrentCycles() {
+    currentResult=null;currentCycleEnabled.clear();
+    if(currentCycleTimer!==null) {
+      window.clearTimeout(currentCycleTimer);timers.delete(currentCycleTimer);currentCycleTimer=null;
     }
   }
-  listen(q('cycle-controls'),'change',renderCycleViews);
-  for(const unit of ['month','day']) listen(q('cycle-start-'+unit),'input',renderCycleViews);
-  listen(q('cycle-today'),'click',()=>{
-    const unit=currentCycleUnit(),today=todayInKorea();
-    if(unit!=='year') q('cycle-start-'+unit).value=unit==='month'?today.slice(0,7):today;
-    renderCycleViews();
-  });
+  function currentCyclesPanel(index) {
+    const panel=node('section','manse-current-cycles');panel.dataset.variantIndex=index;
+    const title=node('h4','','오늘의 연·월·일 절기');title.id=root.id+'-current-title-'+index;
+    panel.setAttribute('aria-labelledby',title.id);
+    const rule=node('p','manse-help','적용 기준: 연은 입춘부터 다음 입춘까지, 월은 절입부터 다음 절입까지입니다. 반년·반달은 각 기간의 중간 시점으로 계산하고, 일은 선택한 시간 보정·날짜 변경 기준을 따릅니다.');
+    rule.id=root.id+'-current-rule-'+index;
+    const button=node('button','manse-current-button','오늘의 절기 보기');button.type='button';button.disabled=true;
+    button.setAttribute('aria-describedby',rule.id);
+    const message=node('p','manse-current-message','위에서 입춘 또는 입추를 선택해 주세요.');
+    const result=node('div','manse-current-result');result.hidden=true;result.setAttribute('role','status');
+    panel.append(rule,button,message,result);
+    panel.prepend(title);
+    return panel;
+  }
+  function updateCurrentCycles(section,index,instant=Date.now()) {
+    if(!currentResult) return;
+    const panel=section.querySelector('.manse-current-cycles');
+    const choice=section.querySelector('.manse-cycle-choice input:checked')?.value;
+    const ready=choice==='spring'||choice==='autumn';
+    const button=panel.querySelector('button'),message=panel.querySelector('.manse-current-message'),result=panel.querySelector('.manse-current-result');
+    button.disabled=!ready;result.replaceChildren();result.hidden=true;message.hidden=false;
+    button.textContent=currentCycleEnabled.has(index)?'현재 시각으로 새로고침':'오늘의 절기 보기';
+    if(!ready) {
+      message.textContent=choice==='undecided'?'아직 판단 불가능을 선택했습니다. 기준을 정하면 오늘의 절기를 볼 수 있습니다.':'위에서 입춘 또는 입추를 선택해 주세요.';
+      return;
+    }
+    if(!currentCycleEnabled.has(index)) {
+      message.textContent='계산 기준을 확인한 뒤 오늘의 절기 보기를 눌러 주세요.';
+      return;
+    }
+    try {
+      const value=buildCurrentCycles(engine,{anchorGanji:currentResult.variants[index].natural,choice,input:currentResult.input,instant,rule:CURRENT_CYCLE_RULE});
+      const stamp=node('p','manse-current-stamp',`${value.timestamp} 기준 · ${value.offset} · ${value.anchorGanji}년이 ${choice==='spring'?'입춘':'입추'}`);
+      const cards=node('dl','manse-current-grid');
+      for(const item of value.periods) {
+        const labels={year:['연 절기','60년', '년'],month:['월 절기','60개월','월'],day:['일 절기','60일','일']};
+        const [label,cycle,suffix]=labels[item.unit];
+        const card=node('div','manse-current-card');card.dataset.unit=item.unit;card.dataset.term=item.term;
+        card.append(node('dt','',label),node('dd','manse-current-term',item.term),node('dd','manse-current-scale',`${cycle} 주기 · ${item.ganji}${suffix}`));cards.append(card);
+      }
+      result.append(stamp,cards,node('p','manse-help','선택한 기준에 따른 자연순환 절기입니다. 하루 중 절기가 바뀔 수 있어 현재 시각을 기준으로 표시합니다.'));
+      panel.dataset.choice=choice;message.hidden=true;result.hidden=false;
+    } catch(e) {
+      message.textContent=e.message||'오늘의 절기를 계산하지 못했습니다. 다시 확인해 주세요.';
+    }
+  }
+  function refreshCurrentCycles() {
+    if(!currentResult) return;
+    const instant=Date.now();
+    [...variants.querySelectorAll('.manse-variant')].forEach((section,index)=>updateCurrentCycles(section,index,instant));
+  }
+  function scheduleCurrentCycles() {
+    if(currentCycleTimer!==null||!currentCycleEnabled.size) return;
+    const timer=window.setTimeout(()=>{
+      timers.delete(timer);currentCycleTimer=null;
+      if(controller.signal.aborted||!currentResult||!currentCycleEnabled.size) return;
+      refreshCurrentCycles();scheduleCurrentCycles();
+    },60000);
+    currentCycleTimer=timer;timers.add(timer);
+  }
   listen(variants,'change',event=>{
     const group=event.target.closest('.manse-cycle-choice');
-    if(group&&event.target.matches('input[type="radio"]')) cycleChoices.set(group.dataset.variantIndex+':'+group.dataset.unit,event.target.value);
+    if(group&&event.target.matches('input[type="radio"]')) updateCurrentCycles(group.closest('.manse-variant'),Number(group.dataset.variantIndex));
   });
+  listen(variants,'click',event=>{
+    const button=event.target.closest('.manse-current-button');
+    if(!button||button.disabled||!currentResult) return;
+    const panel=button.closest('.manse-current-cycles'),index=Number(panel.dataset.variantIndex);
+    currentCycleEnabled.add(index);updateCurrentCycles(panel.closest('.manse-variant'),index);scheduleCurrentCycles();
+  });
+  listen(window,'focus',refreshCurrentCycles);
+  listen(document,'visibilitychange',()=>{if(!document.hidden) refreshCurrentCycles();});
   function render(r) {
-    currentResult=r;cycleChoices.clear();q('cycle-controls').hidden=false;
+    clearCurrentCycles();currentResult=r;
     resultShown=true;variants.replaceChildren();q('facts').replaceChildren();q('notices').replaceChildren();q('notices').hidden=true;
     const name=q('name').value.trim();
     q('result-title').textContent=name?`${name}님의 사주 결과`:'사주 결과';
@@ -359,9 +382,9 @@ export function mountManseCalculator(root) {
         grid.append(col);
       }
       section.append(grid);
-      section.append(node('div','manse-cycle-view'));variants.append(section);
+      const natural=node('div','manse-natural');natural.append(node('span','manse-muted','자연순환 결과'),node('strong','',v.natural+'년이 입춘 또는 입추입니다.'));
+      section.append(natural,naturalCyclesTable(v.natural,i.year),node('p','manse-cycle-note','+0.5년은 해당 간지 기준점에서 반년 뒤입니다.'),naturalCycleChoice(v.natural,index),currentCyclesPanel(index));variants.append(section);
     });
-    renderCycleViews();
     if(r.unknown) addNotice('출생 시각을 몰라 시주는 미정입니다.'+(r.variants.length>1?' 날짜·절입 경계에서 가능한 명식을 함께 표시합니다.':''));
     else if(r.variants.length>1) addNotice('입력한 시각에 경계가 있어 결과가 둘 이상입니다. 정확한 출생 초 또는 당시의 시간 기록을 확인해 주세요.');
     if(r.duplicate) addNotice('표준시·서머타임 변경으로 같은 시각이 두 번 존재합니다. 두 경우를 모두 계산했습니다.');
