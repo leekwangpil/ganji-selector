@@ -6,8 +6,8 @@
  * Timezones: frozen IANA Asia/Seoul tzdata; foreign offsets are explicit inputs.
  * Day/hour conventions are required inputs; none is silently labelled Wonkwang's default.
  */
-export function createManseEngine(lunarLibrary, timezoneData, calendarAdapter) {
-  'use strict';
+export function createManseEngine(lunarLibrary, timezoneData, calendarAdapter, options = {}) {
+  const minimumYear = options.minimumYear ?? 1910;
   const MINUTE = 60000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
   const GAN = ['갑','을','병','정','무','기','경','신','임','계'];
   const JI = ['자','축','인','묘','진','사','오','미','신','유','술','해'];
@@ -60,7 +60,9 @@ export function createManseEngine(lunarLibrary, timezoneData, calendarAdapter) {
     const terms = Object.entries(table).map(([key, solar]) => {
       const name = ALIASES[key] || key;
       const monthIndex = JIE.indexOf(name);
-      const utc = Date.UTC(solar.getYear(), solar.getMonth()-1, solar.getDay(), solar.getHour(), solar.getMinute(), solar.getSecond()) - 480*MINUTE;
+      // Library Solar uses Julian dates before October 1582. Convert its absolute
+      // Julian day, not its date fields, to proleptic Gregorian/UTC.
+      const utc = Math.round((solar.getJulianDay() - 2440587.5) * DAY) - 480*MINUTE;
       return {name, label: JIE_KO[monthIndex] || name, monthIndex, utc};
     }).filter(t => t.monthIndex >= 0).sort((a,b) => a.utc-b.utc);
     termCache.set(year, terms);
@@ -101,13 +103,13 @@ export function createManseEngine(lunarLibrary, timezoneData, calendarAdapter) {
   }
   function validate(input) {
     const {year:y, month:m, day:d} = input;
-    if (!Number.isInteger(y) || y<1910 || y>2050) fail('연도는 1910~2050 사이의 네 자리 숫자로 입력해 주세요.', 'year');
+    if (!Number.isInteger(y) || y<minimumYear || y>2050) fail(`연도는 ${minimumYear}~2050 사이의 네 자리 숫자로 입력해 주세요.`, 'year');
     if (!Number.isInteger(m) || m<1 || m>12) fail('태어난 월을 선택해 주세요.', 'month');
     if (!Number.isInteger(d) || d<1 || d>daysInMonth(y,m)) fail('올바른 양력 날짜를 선택해 주세요.', 'day');
     if (!input.unknown && (!Number.isInteger(input.hour)||input.hour<0||input.hour>23)) fail('시는 0~23 사이의 정수로 입력해 주세요.', 'hour');
     if (!input.unknown && (!Number.isInteger(input.minute)||input.minute<0||input.minute>59)) fail('분은 0~59 사이의 정수로 입력해 주세요.', 'minute');
     if (!['korea','foreign'].includes(input.zone)) fail('출생 시간대를 선택해 주세요.', 'zone');
-    if (input.zone==='foreign' && (!Number.isFinite(input.offset)||input.offset < -12||input.offset > 14||!Number.isInteger(input.offset*60))) fail('해외 출생지의 표준 UTC 시차를 -12~14시간 범위로 입력해 주세요.', 'offset');
+    if (input.zone==='foreign' && (!Number.isFinite(input.offset)||input.offset < -12||input.offset > 14||!(options.historical ? Math.abs(input.offset*3600-Math.round(input.offset*3600)) < 1e-6 : Number.isInteger(input.offset*60)))) fail('해외 출생지의 표준 UTC 시차를 -12~14시간 범위로 입력해 주세요.', 'offset');
     if (!['standard','meridian','longitude'].includes(input.clock)) fail('일주·시주에 적용할 시간 기준을 선택해 주세요.', 'clock');
     if (input.clock==='longitude' && (!Number.isFinite(input.longitude)||Math.abs(input.longitude)>180)) fail('출생지 경도를 -180~180도 범위로 입력해 주세요. 동경은 양수, 서경은 음수입니다.', 'longitude');
     if (!['zi23','split','midnight'].includes(input.boundary)) fail('날짜 변경 기준을 선택해 주세요.', 'boundary');
@@ -158,6 +160,6 @@ export function createManseEngine(lunarLibrary, timezoneData, calendarAdapter) {
   function termLabel(term, input) {
     return `${term.label} ${formatWall(term.utc+zoneAt(term.utc,input).offset*MINUTE,true)}`;
   }
-  return {calculate, atInstant, termsFor, validate, daysInMonth, localCandidates, zoneAt, correctedWall,
+  return {minimumYear, calculate, atInstant, termsFor, validate, daysInMonth, localCandidates, zoneAt, correctedWall,
     formatWall, formatOffset, termLabel, naturalCycle, pillar, fields};
 }
