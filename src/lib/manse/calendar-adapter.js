@@ -2,7 +2,7 @@
  * as saju year/month pillars; those remain based on solar-term instants.
  * korean-lunar-calendar 0.4.0, https://github.com/usingsky/korean_lunar_calendar_js
  */
-export function createCalendarAdapter(KoreanLunarCalendar) {
+export function createCalendarAdapter(KoreanLunarCalendar, options = {}) {
   const minimum={year:1910,month:1,day:1}, maximum={year:2050,month:12,day:31};
   const number=d=>d.year*10000+d.month*100+d.day;
   const inRange=d=>number(d)>=number(minimum) && number(d)<=number(maximum);
@@ -23,10 +23,15 @@ export function createCalendarAdapter(KoreanLunarCalendar) {
     const mode=input.calendar===undefined?'solar':input.calendar;
     if(!['solar','lunar'].includes(mode)) fail('양력 또는 음력을 선택해 주세요.','calendar');
     const y=input.year,m=input.month,d=input.day;
-    const minimumYear=mode==='lunar'?lunarMinimum.year:minimum.year;
+    const minimumYear=mode==='lunar'?lunarMinimum.year:(options.minimumYear ?? minimum.year);
     if(!Number.isInteger(y)||y<minimumYear||y>maximum.year) fail(`연도는 ${minimumYear}~${maximum.year} 사이의 네 자리 숫자로 입력해 주세요.`,'year');
     if(!Number.isInteger(m)||m<1||m>12) fail('태어난 월을 선택해 주세요.','month');
     if(!Number.isInteger(d)||d<1||d>(mode==='lunar'?30:31)) fail(`올바른 ${mode==='lunar'?'음력':'양력'} 날짜를 선택해 주세요.`,'day');
+    if(mode==='solar' && y<minimum.year && options.minimumYear) {
+      const days=new Date(Date.UTC(y,m,0)).getUTCDate();
+      if(d>days) fail('올바른 그레고리력 양력 날짜를 선택해 주세요.','day');
+      return {calendar:'solar',solar:{year:y,month:m,day:d},lunar:null};
+    }
     const c=new KoreanLunarCalendar();
     if(mode==='lunar') {
       if(typeof input.intercalation!=='boolean') fail('음력 월을 평달 또는 윤달로 선택해 주세요.','month');

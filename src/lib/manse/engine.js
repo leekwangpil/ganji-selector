@@ -108,6 +108,7 @@ export function createManseEngine(lunarLibrary, timezoneData, calendarAdapter, o
     if (!Number.isInteger(d) || d<1 || d>daysInMonth(y,m)) fail('올바른 양력 날짜를 선택해 주세요.', 'day');
     if (!input.unknown && (!Number.isInteger(input.hour)||input.hour<0||input.hour>23)) fail('시는 0~23 사이의 정수로 입력해 주세요.', 'hour');
     if (!input.unknown && (!Number.isInteger(input.minute)||input.minute<0||input.minute>59)) fail('분은 0~59 사이의 정수로 입력해 주세요.', 'minute');
+    if (options.historical && y<1910 && input.zone!=='foreign') fail('1910년 이전은 ‘해외·역사 인물’에서 당시 UTC 시차를 직접 입력해 주세요.', 'zone');
     if (!['korea','foreign'].includes(input.zone)) fail('출생 시간대를 선택해 주세요.', 'zone');
     if (input.zone==='foreign' && (!Number.isFinite(input.offset)||input.offset < -12||input.offset > 14||!(options.historical ? Math.abs(input.offset*3600-Math.round(input.offset*3600)) < 1e-6 : Number.isInteger(input.offset*60)))) fail('해외 출생지의 표준 UTC 시차를 -12~14시간 범위로 입력해 주세요.', 'offset');
     if (!['standard','meridian','longitude'].includes(input.clock)) fail('일주·시주에 적용할 시간 기준을 선택해 주세요.', 'clock');

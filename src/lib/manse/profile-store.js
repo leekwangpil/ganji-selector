@@ -14,11 +14,11 @@ function normalizeDraft(draft) {
   }
   const i = draft.input;
   if (!object(i) || !['solar','lunar'].includes(i.calendar) || typeof i.intercalation !== 'boolean' ||
-      !integer(i.year,1909,2050) || !integer(i.month,1,12) || !integer(i.day,1,31) ||
+      !integer(i.year,1500,2050) || !integer(i.month,1,12) || !integer(i.day,1,31) ||
       typeof i.unknown !== 'boolean' || (!i.unknown && (!integer(i.hour,0,23) || !integer(i.minute,0,59))) ||
       !['남자','여자'].includes(i.gender) || !['korea','foreign'].includes(i.zone) ||
       !['standard','meridian','longitude'].includes(i.clock) || !['zi23','split','midnight'].includes(i.boundary) ||
-      (i.zone === 'foreign' && (!Number.isFinite(i.offset) || i.offset < -12 || i.offset > 14 || !Number.isInteger(i.offset * 60) || typeof i.dst !== 'boolean')) ||
+      (i.zone === 'foreign' && (!Number.isFinite(i.offset) || i.offset < -12 || i.offset > 14 || Math.abs(i.offset * 3600 - Math.round(i.offset * 3600)) > 1e-6 || typeof i.dst !== 'boolean')) ||
       (i.clock === 'longitude' && (!Number.isFinite(i.longitude) || Math.abs(i.longitude) > 180))) {
     fail('저장된 생년월일 또는 계산 기준을 확인해 주세요.');
   }
