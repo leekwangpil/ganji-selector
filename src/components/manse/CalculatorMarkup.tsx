@@ -52,7 +52,7 @@ export function CalculatorMarkup() {
             </div>
             <p id="wm-date-help" className="manse-help">연도 4자리 · 월/일/시 2자리(예: 01) → 다음 칸 자동 이동</p>
             <label id="wm-intercalation-field" className="manse-check" hidden><input id="wm-intercalation" name="intercalation" type="checkbox" disabled />윤달</label>
-            <p id="wm-calendar-help" className="manse-help">양력 1910.01.01~2050.12.31</p>
+            <p id="wm-calendar-help" className="manse-help">그레고리력 양력 1500.01.01~2050.12.31 · 1910년 이전은 당시 UTC 시차 직접 입력</p>
             <div className="manse-genders" role="group" aria-label="성별">
               <label className="manse-check"><input type="radio" name="gender" value="남자" required />남자</label>
               <label className="manse-check"><input type="radio" name="gender" value="여자" required />여자</label>
@@ -70,7 +70,8 @@ export function CalculatorMarkup() {
         </div>
         <fieldset className="manse-settings">
           <legend>계산 기준</legend>
-          <label className="manse-field" htmlFor="wm-zone"><span>출생 시간대</span><select id="wm-zone" name="zone" defaultValue="korea" required><option value="korea">한국 · 과거 표준시·서머타임 자동 반영</option><option value="foreign">해외 · UTC 시차 직접 입력</option></select></label>
+          <label className="manse-field" htmlFor="wm-zone"><span>출생 시간대</span><select id="wm-zone" name="zone" defaultValue="korea" required><option value="korea">한국 · 과거 표준시·서머타임 자동 반영</option><option value="foreign">해외·역사 인물 · UTC 시차 직접 입력</option></select></label>
+          <p className="manse-help">옛 율리우스력 기록은 그레고리력으로 변환 후 입력해 주세요. 역사 인물의 시차는 당시 기록을 확인해야 합니다.</p>
           <div id="wm-foreign-fields" className="manse-setting-row" hidden>
             <label className="manse-field" htmlFor="wm-offset"><span>출생 당시 표준 UTC 시차</span><input id="wm-offset" name="offset" type="text" inputMode="decimal" placeholder="예: 9 또는 -5" disabled /></label>
             <label className="manse-check"><input id="wm-dst" name="dst" type="checkbox" disabled />출생 당시 서머타임 +1시간 적용</label>

@@ -25,8 +25,8 @@ export function mountManseCalculator(root) {
     },delay);
     timers.add(timer);
   }
-  const calendarAdapter=createCalendarAdapter(KoreanCalendarClass);
-  const engine=createManseEngine(lunarLibrary,timezoneData,calendarAdapter);
+  const calendarAdapter=createCalendarAdapter(KoreanCalendarClass,{minimumYear:1500});
+  const engine=createManseEngine(lunarLibrary,timezoneData,calendarAdapter,{minimumYear:1500,historical:true});
   const q=id=>root.querySelector('#wm-'+id);
   const form=q('form'), year=q('year'), month=q('month'), day=q('day');
   const monthOptions=q('month-options'), dayOptions=q('day-options'), intercalation=q('intercalation');
@@ -62,7 +62,7 @@ export function mountManseCalculator(root) {
       const lunarMonth=calendarAdapter.lunarMonths(y).find(choice=>choice.month===m&&choice.intercalation===intercalation.checked);
       choices=lunarMonth?lunarMonth.days:[];
     } else {
-      const knownYear=/^[0-9]{4}$/.test(year.value.trim())&&y>=1910&&y<=2050;
+      const knownYear=/^[0-9]{4}$/.test(year.value.trim())&&y>=1500&&y<=2050;
       const limit=Number.isInteger(m)&&m>=1?engine.daysInMonth(knownYear?y:2000,m):month.value.trim()===''?31:0;
       choices=Array.from({length:limit},(_,n)=>n+1);
     }
@@ -84,7 +84,7 @@ export function mountManseCalculator(root) {
     q('date-legend').textContent=(calendarMode==='lunar'?'음력':'양력')+' 생년월일';
     q('calendar-help').textContent=calendarMode==='lunar'
       ?`한국 음력 ${calendarAdapter.format(calendarAdapter.lunarMinimum)}~${calendarAdapter.format(calendarAdapter.lunarMaximum)} · 윤달 생일은 ‘윤달’에 표시`
-      :'양력 1910.01.01~2050.12.31';
+      :'그레고리력 양력 1500.01.01~2050.12.31 · 1910년 이전은 당시 UTC 시차 직접 입력';
   }
   for(const radio of form.querySelectorAll('input[name="calendar"]')) {
     listen(radio,'change',()=>{
@@ -112,7 +112,7 @@ export function mountManseCalculator(root) {
   function validEntry(step) {
     const raw=step.field.value.trim(),value=parseDigits(raw,step.max,step.digits);
     if(!Number.isInteger(value)) return false;
-    if(step.field===year) return raw.length===4&&value>=(calendarMode==='lunar'?calendarAdapter.lunarMinimum.year:1910);
+    if(step.field===year) return raw.length===4&&value>=(calendarMode==='lunar'?calendarAdapter.lunarMinimum.year:1500);
     if(step.field===hour) return value>=0;
     if(value<1) return false;
     if(step.field===month) {
@@ -386,7 +386,7 @@ export function mountManseCalculator(root) {
     const isLunar=r.dates.calendar==='lunar';
     const enteredDate=isLunar?r.dates.lunar:r.dates.solar;
     summary.textContent=`${isLunar?'음력':'양력'} ${calendarAdapter.format(enteredDate,isLunar)} · ${i.unknown?'시간 모름':String(i.hour).padStart(2,'0')+':'+String(i.minute).padStart(2,'0')} · ${i.gender}`;
-    q('converted').textContent=isLunar?`계산에 사용한 양력 ${calendarAdapter.format(r.dates.solar)}`:`한국 음력 ${calendarAdapter.format(r.dates.lunar,true)}`;
+    q('converted').textContent=isLunar?`계산에 사용한 양력 ${calendarAdapter.format(r.dates.solar)}`:(r.dates.lunar?`한국 음력 ${calendarAdapter.format(r.dates.lunar,true)}`:'역사 인물: 음력 변환 미지원 · 과거 절기 시각은 모델 계산값');
     q('converted').hidden=false;
     status.textContent=r.variants.length>1?`가능한 명식 ${r.variants.length}개`:'계산 완료';
     r.variants.forEach((v,index)=>{
@@ -425,7 +425,7 @@ export function mountManseCalculator(root) {
     fact('절입 자료','천문 라이브러리 계산값 · 원광 역서와 전체 대조 전');
     fact('시간 보정 범위','경도 보정은 평태양시 기준 · 균시차 미적용');
     fact('생일 변환','한국 음력 기준 · 변환한 양력 날짜로 사주 계산');
-    fact('계산 범위','양력 1910.01.01–2050.12.31 · 연·월주는 절입 순간으로 계산');
+    fact('계산 범위','그레고리력 양력 1500.01.01–2050.12.31 · 연·월주는 절입 순간으로 계산');
   }
   function readBirthInput() {
     const selectedGender=form.querySelector('input[name="gender"]:checked');
