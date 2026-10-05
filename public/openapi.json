@@ -108,17 +108,24 @@
                           "split",
                           "midnight"
                         ]
+                      },
+                      "calendarStyle": {
+                        "type": "string",
+                        "enum": [
+                          "gregorian"
+                        ],
+                        "description": "1910년 이전 출생일에 필수. 사료의 율리우스력 날짜는 그레고리력으로 변환한 후 입력."
                       }
                     }
                   },
                   "fromYear": {
                     "type": "integer",
-                    "minimum": 1911,
+                    "minimum": 1500,
                     "maximum": 2050
                   },
                   "toYear": {
                     "type": "integer",
-                    "minimum": 1911,
+                    "minimum": 1500,
                     "maximum": 2050
                   }
                 }

@@ -17,7 +17,7 @@ export function buildCurrentCycles(engine, {anchorGanji, choice, input, instant,
   if (!['spring','autumn'].includes(choice)) throw new Error('입춘 또는 입추를 먼저 선택해 주세요.');
   if (!Number.isFinite(instant)) throw new Error('현재 시각을 확인할 수 없습니다.');
   const year = new Date(instant).getUTCFullYear();
-  if (year < 1910 || year > 2050) throw new Error('오늘의 절기 계산 범위는 1910~2050년입니다.');
+  if (year < (engine.minimumYear ?? 1910) - (engine.minimumYear < 1910 ? 1 : 0) || year > 2050) throw new Error(`절기 계산 범위는 ${engine.minimumYear ?? 1910}~2050년입니다.`);
   engine.validate(input);
   const scenario = buildNaturalCycleCases(anchorGanji)[choice === 'spring' ? 0 : 1];
   const springIndex = ganji.indexOf(scenario.springGanji);

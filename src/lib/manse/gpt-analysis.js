@@ -15,8 +15,17 @@ export function analyzeCycles(request) {
   if (!birth || typeof birth !== 'object' || Array.isArray(birth)) fail('birth 입력이 필요합니다.');
   if (typeof birth.unknown !== 'boolean') fail('출생 시각 확인 여부 unknown을 지정해 주세요.');
   if (birth.zone === 'foreign' && typeof birth.dst !== 'boolean') fail('해외 출생 시 서머타임 여부 dst를 확인해 주세요.');
-  if (!Number.isInteger(fromYear) || !Number.isInteger(toYear) || fromYear < 1911 || toYear > 2050 || fromYear > toYear || toYear - fromYear > 19) fail('조회 기간은 1911~2050년 중 최대 20년입니다.');
-  const engine = createManseEngine(lunarLibrary, timezoneData, createCalendarAdapter(KoreanCalendarClass));
+  if (!Number.isInteger(fromYear) || !Number.isInteger(toYear) || fromYear < 1500 || toYear > 2050 || fromYear > toYear || toYear - fromYear > 19) fail('조회 기간은 1500~2050년 중 최대 20년입니다.');
+  const adapter = createCalendarAdapter(KoreanCalendarClass);
+  if (birth.year < 1910) {
+    if (birth.calendar !== 'solar' || birth.calendarStyle !== 'gregorian') fail('1910년 이전 출생일은 그레고리력 양력 날짜와 calendarStyle=gregorian 확인이 필요합니다.');
+    if (birth.zone !== 'foreign') fail('1910년 이전 출생은 당시 UTC 시차를 직접 확인해 입력해 주세요.');
+  }
+  const historicalAdapter = {resolveDate(input) {
+    if(input.calendar === 'solar' && input.year < 1910) return {calendar:'solar',solar:{year:input.year,month:input.month,day:input.day},lunar:null};
+    return adapter.resolveDate(input);
+  }};
+  const engine = createManseEngine(lunarLibrary, timezoneData, historicalAdapter, {minimumYear:1500,historical:true});
   const result = engine.calculate(birth);
   const start = Date.UTC(fromYear, 0, 1) - 9 * HOUR;
   const end = Date.UTC(toYear + 1, 0, 1) - 9 * HOUR;
@@ -35,8 +44,6 @@ export function analyzeCycles(request) {
     const rows=[];
     for(let i=0;i<ordered.length-1;i++) {
       const a=ordered[i], b=ordered[i+1];
-      // KST 1910-01-01 starts in UTC 1909; engine supports UTC years >=1910.
-      if(new Date(a).getUTCFullYear()<1910) fail('조회 시작은 1911년 이상으로 지정해 주세요.');
       const cycle=buildCurrentCycles(engine,{anchorGanji,choice,input:result.input,instant:a,rule:CURRENT_CYCLE_RULE});
       const p=cycle.periods.find(p=>p.unit===unit);
       const previous=rows.at(-1);
@@ -48,6 +55,7 @@ export function analyzeCycles(request) {
   return {
     rule:CURRENT_CYCLE_RULE, reportTimezone:'Asia/Seoul', intervalConvention:'start inclusive, end exclusive',
     range:{fromYear,toYear}, dates:result.dates, birthInput:result.input,
+    historicalAccuracy:'과거 절기 시각은 lunar-javascript 모델 계산값입니다. 사료와의 독립 검증 또는 역사적 출생 기록의 정확성을 보증하지 않습니다.',
     notes:['운세 해석과 사건 검색을 포함하지 않습니다.','입춘형·입추형은 확정하지 않고 모두 반환합니다.','년운은 입춘, 월운은 절입 기준입니다. 달력 연도·월과 일치하지 않을 수 있습니다.','출생 시간 미상 시 가능한 명식을 모두 반환합니다.'],
     variants:result.variants.map(v=>({
       pillars:{year:v.year.ko,month:v.month.ko,day:v.day.ko,hour:v.hour?.ko??null},anchorGanji:v.natural,

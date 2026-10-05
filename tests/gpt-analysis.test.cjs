@@ -35,5 +35,5 @@ test('invalid ranges and unconfirmed birth inputs fail',()=>{
  assert.throws(()=>analyzeCycles({birth,fromYear:2020,toYear:2040}));
  assert.throws(()=>analyzeCycles({birth:{...birth,unknown:undefined},fromYear:2024,toYear:2024}));
  assert.throws(()=>analyzeCycles({birth:{...birth,zone:'foreign',offset:9},fromYear:2024,toYear:2024}));
- assert.throws(()=>analyzeCycles({birth,fromYear:1910,toYear:1910}));
+ assert.throws(()=>analyzeCycles({birth,fromYear:1499,toYear:1499}));
 });
