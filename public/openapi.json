@@ -1,0 +1,161 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "자연순환 년운·월운 절기 계산",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://ganji-selector.vercel.app"
+    }
+  ],
+  "paths": {
+    "/api/gpt/cycles": {
+      "post": {
+        "operationId": "analyzeNaturalCycles",
+        "summary": "기존 만세력 로직으로 가능한 명식과 입춘형·입추형 년운·월운 구간을 계산. 해석 없음.",
+        "x-openai-isConsequential": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "birth",
+                  "fromYear",
+                  "toYear"
+                ],
+                "properties": {
+                  "birth": {
+                    "type": "object",
+                    "required": [
+                      "year",
+                      "month",
+                      "day",
+                      "calendar",
+                      "gender",
+                      "unknown",
+                      "zone",
+                      "clock",
+                      "boundary"
+                    ],
+                    "properties": {
+                      "year": {
+                        "type": "integer"
+                      },
+                      "month": {
+                        "type": "integer"
+                      },
+                      "day": {
+                        "type": "integer"
+                      },
+                      "hour": {
+                        "type": "integer"
+                      },
+                      "minute": {
+                        "type": "integer"
+                      },
+                      "calendar": {
+                        "type": "string",
+                        "enum": [
+                          "solar",
+                          "lunar"
+                        ]
+                      },
+                      "intercalation": {
+                        "type": "boolean"
+                      },
+                      "gender": {
+                        "type": "string",
+                        "enum": [
+                          "남자",
+                          "여자"
+                        ]
+                      },
+                      "unknown": {
+                        "type": "boolean"
+                      },
+                      "zone": {
+                        "type": "string",
+                        "enum": [
+                          "korea",
+                          "foreign"
+                        ]
+                      },
+                      "offset": {
+                        "type": "number",
+                        "description": "해외 출생 표준 UTC 시차(시간)"
+                      },
+                      "dst": {
+                        "type": "boolean"
+                      },
+                      "clock": {
+                        "type": "string",
+                        "enum": [
+                          "standard",
+                          "meridian",
+                          "longitude"
+                        ]
+                      },
+                      "longitude": {
+                        "type": "number"
+                      },
+                      "boundary": {
+                        "type": "string",
+                        "enum": [
+                          "zi23",
+                          "split",
+                          "midnight"
+                        ]
+                      }
+                    }
+                  },
+                  "fromYear": {
+                    "type": "integer",
+                    "minimum": 1911,
+                    "maximum": 2050
+                  },
+                  "toYear": {
+                    "type": "integer",
+                    "minimum": 1911,
+                    "maximum": 2050
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "명식별 두 유형의 년운·월운 절기. 날짜 구간은 KST, 시작 포함 끝 제외.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "variants": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류"
+          },
+          "413": {
+            "description": "입력 크기 초과"
+          },
+          "415": {
+            "description": "JSON 필요"
+          }
+        }
+      }
+    }
+  }
+}
